@@ -39,12 +39,12 @@ class BKNode(object):
         for i in range(dmin, dmax+1):
             if self.children.has_key(i):
                 for child in self.children[i].find(obj, threshold):
-                    yield child
+                    yield child    
                     
 class ImageObject(object):
     def __init__(self, path):
         self.path = path
-        self.hash = self.pHash(path)
+        self.hash = self.hash(path)
     def distance(self, obj):
         '''Hamming distance'''
         x = self.hash^obj.hash
@@ -58,7 +58,7 @@ class ImageObject(object):
         return (x*h01)>>56 & 0xff
     def get(self):
         return this.path
-    def pHash(self, path):
+    def hash(self, path):
         gray = cv2.imread(path, 0)
         if gray is None: return None
         gray = cv2.blur(gray, (7,7))
@@ -73,20 +73,29 @@ class ImageObject(object):
             hash_val = hash_val << 1
         return hash_val
 
-def test(img_folder):
-    bktree=BKTree()
-    for dirPath, dirNames, fileNames in os.walk(img_folder):
-        for f in fileNames:
-            path = os.path.join(dirPath, f)
-            bktree.insert(ImageObject(path))
+class ImageDatabase(object):
+    def __init__(self, img_folder, max_distance):
+        self.max_distance = max_distance
+        self.bktree = BKTree()
+        for dirPath, dirNames, fileNames in os.walk(img_folder):
+            for f in fileNames:
+                path = os.path.join(dirPath, f)
+                self.bktree.insert(ImageObject(path))
+    def insert(self, path):
+        self.bktree.insert(ImageObject(path))
+    def find_duplicate(self, path):
+        return self.bktree.find(ImageObject(path), self.max_distance)
 
+
+def test_find_duplicate(img_folder):
+    imageDB = ImageDatabase(img_folder, 10)
     for dirPath, dirNames, fileNames in os.walk(img_folder):
         for f in fileNames:
             img_path = os.path.join(dirPath, f)
-            for img in bktree.find(ImageObject(img_path), 10):
+            for img in imageDB.find_duplicate(img_path):
                 print img.path
             print '-------------------------------------'
 
 ts = time.time()
-test('var')
+test_find_duplicate('var')
 print '%2.2f secs' % (time.time()-ts)
