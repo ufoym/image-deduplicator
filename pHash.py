@@ -1,4 +1,4 @@
-import cv2, numpy as np, os, time
+import cv2, numpy as np, os, time, cPickle as pickle
 
 class BKTree(object):
     def __init__(self):
@@ -74,21 +74,31 @@ class ImageObject(object):
         return hash_val
 
 class ImageDatabase(object):
-    def __init__(self, img_folder, max_distance):
+    def __init__(self, max_distance):
         self.max_distance = max_distance
+    def build(self, img_folder):
         self.bktree = BKTree()
         for dirPath, dirNames, fileNames in os.walk(img_folder):
             for f in fileNames:
                 path = os.path.join(dirPath, f)
                 self.bktree.insert(ImageObject(path))
+    def load(self, db_path):
+        self.bktree = pickle.load(open(db_path, 'r'))
+    def save(self, db_path):
+        pickle.dump(self.bktree, open(db_path, 'w'))
     def insert(self, path):
         self.bktree.insert(ImageObject(path))
     def find_duplicate(self, path):
         return self.bktree.find(ImageObject(path), self.max_distance)
 
 
-def test_find_duplicate(img_folder):
-    imageDB = ImageDatabase(img_folder, 10)
+def test_find_duplicate(img_folder, db_path):
+    imageDB = ImageDatabase(10)
+    if os.path.exists(db_path):
+        imageDB.load(db_path)
+    else:
+        imageDB.build(img_folder)
+        imageDB.save(db_path)
     for dirPath, dirNames, fileNames in os.walk(img_folder):
         for f in fileNames:
             img_path = os.path.join(dirPath, f)
@@ -97,5 +107,5 @@ def test_find_duplicate(img_folder):
             print '-------------------------------------'
 
 ts = time.time()
-test_find_duplicate('var')
+test_find_duplicate('var', 'img.hash')
 print '%2.2f secs' % (time.time()-ts)
