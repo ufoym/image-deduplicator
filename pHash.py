@@ -81,19 +81,26 @@ class ImageDatabase(object):
         for dirPath, dirNames, fileNames in os.walk(img_folder):
             for f in fileNames:
                 path = os.path.join(dirPath, f)
-                self.bktree.insert(ImageObject(path))
+                self.insert(path)
     def load(self, db_path):
         self.bktree = pickle.load(open(db_path, 'r'))
     def save(self, db_path):
         pickle.dump(self.bktree, open(db_path, 'w'))
     def insert(self, path):
-        self.bktree.insert(ImageObject(path))
+        imgObj = ImageObject(path)
+        if imgObj.hash is not None:
+            print path, imgObj.hash
+            self.bktree.insert(imgObj)
     def find_duplicate(self, path):
-        return self.bktree.find(ImageObject(path), self.max_distance)
+        imgObj = ImageObject(path)
+        if imgObj.hash is None:
+            return None
+        else:
+            return self.bktree.find(imgObj, self.max_distance)
 
 
 def test_find_duplicate(img_folder, db_path):
-    imageDB = ImageDatabase(10)
+    imageDB = ImageDatabase(12)
     if os.path.exists(db_path):
         imageDB.load(db_path)
     else:
@@ -102,10 +109,12 @@ def test_find_duplicate(img_folder, db_path):
     for dirPath, dirNames, fileNames in os.walk(img_folder):
         for f in fileNames:
             img_path = os.path.join(dirPath, f)
-            for img in imageDB.find_duplicate(img_path):
-                print img.path
-            print '-------------------------------------'
+            imgs = imageDB.find_duplicate(img_path)
+            if imgs:
+                for img in imgs:
+                    print '.',
+                print
 
 ts = time.time()
-test_find_duplicate('var', 'img.hash')
+test_find_duplicate('C:\\Users\\u\\Downloads\\images', 'img.hash')
 print '%2.2f secs' % (time.time()-ts)
